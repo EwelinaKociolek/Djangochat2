@@ -5,41 +5,73 @@
 </div>
 <div class="w-1/2 mx-4 bg-white rounded-xl mx-auto p-4">
     <div class="space-y-3">
-        <div class="p-4 bg-gray-200 rounded-xl mx-auto">
-            <p class="font-semibold">User name</p>
-            <p class="">Example msg</p>
-        </div>
-        <div class="p-4 bg-gray-200 rounded-xl mx-auto">
-            <p class="font-semibold">User name</p>
-            <p class="">Example msg</p>
-        </div>
-        <div class="p-4 bg-gray-200 rounded-xl mx-auto">
-            <p class="font-semibold">User name</p>
-            <p class="">Example msg</p>
-        </div>
-        <div class="p-4 bg-gray-200 rounded-xl mx-auto">
-            <p class="font-semibold">User name</p>
-            <p class="">Example msg</p>
-        </div>
-        <div class="p-4 bg-gray-200 rounded-xl mx-auto">
-            <p class="font-semibold">User name</p>
-            <p class="">Example msg</p>
-        </div>
+<!--        <div class="p-4 bg-gray-200 rounded-xl mx-auto">-->
+<!--            <p class="font-semibold">User name</p>-->
+<!--            <p class="">Example msg</p>-->
+<!--        </div>-->
+        {% for m in messages %}
+        <b>{{ m.user.username }}</b>: {{ m.content }}<br>
+        {% endfor %}
     </div>
+
 </div>
 <div class="w-1/2 mx-auto bg-white rounded-xl m-6 p-4">
-    <form
-            method="post"
-            action="."
-            class="flex"
-    >
-        <input
-                type="text"
-                name="content"
-                placeholder="Your msg..."
-                class="mr-3 flex-1"
-        />
+    <form method="post" action="." class="flex">
+        {% csrf_token %}
+        <input type="text" name="content" placeholder="Your msg..." class="mr-3 flex-1"/>
+        <button type="submit" class="px-5 py-3 rounded-xl text-white bg-blue-800">Send</button>
     </form>
 </div>
+
+{% endblock %}
+
+{% block scripts %}
+{{chat.slug|json_script:"json-chatname"}}
+{{request.user.username|json_script:"json-username"}}
+
+
+<script>
+    const chatName = JSON.parse(document.getElementById('json-chatname').textContent)
+    const userName = JSON.parse(document.getElementById('json-username').textContent)
+    const chatSocked = new WebSocked("ws://" + window.location.host + "/ws/" + chatName + "/")
+    chatSocked.onmessage = function (event) {
+        console.log("onmessage")
+        const data = JSON.parse(event.data);
+
+        if (data.message) {
+            document.querySelector('#chat-messages').innerHTML += ('<br>' + data.username + '<b>:' + data.message + '<br>');
+                scrollToBottom();
+            } else {
+                alert("the message was empty");
+            }
+    }
+    chatSocked.onclose = function (event) {
+        console.log("onclose")
+    }
+
+    # logika odpowiedzialna za wysylanie wiadomosci
+    document.querySelector('#chat-message-submit').onclick = function (event) {
+        event.preventDefault();
+
+        const messageInputDom = document.wuerySelector('chat-message-input');
+        const message = messageInputDom.value;
+
+        chatSocket.send(JSON.stringify({
+            'message': message,
+            'username': userName,
+            'chat': chatName,
+        }))
+        messageInputDom.value = "";
+        return false;
+    }
+
+    function scrollToBottom() {
+        const objDiv = document.querySelector('#chat-messages');
+        objDiv.scrollTop = objDiv.scrollHeight;
+    }
+
+    scrollToBottom();
+
+</script>
 
 {% endblock %}
