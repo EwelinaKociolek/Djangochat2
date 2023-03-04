@@ -4,6 +4,7 @@ from asgiref.sync import sync_to_async
 from .models import Message, Chat
 from django.contrib.auth.models import User
 
+
 class ChatConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         self.chat_name = self.scope['url_route']['kwargs']['chat_name']
@@ -30,15 +31,16 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
         await self.save_message(username, chat, message)
 
-        await self.channel_layer.group.send(
+        await self.channel_layer.group_send(
             self.chat_group_name,
             {
                 'type': 'chat_message',
                 'message': message,
                 'username': username,
-                'chat': chat,
+                'chat': chat
             }
         )
+
     async def chat_message(self, event):
         message = event['message']
         username = event['username']
@@ -47,12 +49,11 @@ class ChatConsumer(AsyncWebsocketConsumer):
         await self.send(text_data=json.dumps({
             'message': message,
             'username': username,
-            'chat': chat,
+            'chat': chat
         }))
 
     @sync_to_async
-    def save_message(self, username, chat, message):
+    def save_message(self, username, chat_slug, message):
         user = User.objects.get(username=username)
-        chat = Chat.objects.get(slug=chat)
+        chat = Chat.objects.get(slug=chat_slug)
         Message.objects.create(user=user, chat=chat, content=message)
-
